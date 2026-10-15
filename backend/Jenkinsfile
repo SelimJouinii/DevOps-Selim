@@ -1,0 +1,27 @@
+pipeline {
+  agent any
+  stages {
+    stage('Build') {
+      steps {
+        dir('backend') {
+          sh 'mvn clean install -DskipTests'
+        }
+      }
+    }
+    stage('Sonar') {
+      steps {
+        withCredentials([string(credentialsId: 'sonar-token', variable: 'T')]) {
+          dir('backend') {
+            sh 'mvn verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -DskipTests -Dsonar.host.url=http://localhost:9000 -Dsonar.token=$T -Dsonar.projectKey=devops'
+          }
+        }
+      }
+    }
+    stage('Docker build') {
+      steps { sh 'docker compose build' }
+    }
+    stage('Deploy') {
+      steps { sh 'docker compose up -d' }
+    }
+  }
+}
